@@ -1,0 +1,15 @@
+<?php
+
+/**
+ * @var Composer\Autoload\ClassLoader $loader
+ */
+$loader = require_once __DIR__ . '/../vendor/autoload.php';
+
+use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Input\ArgvInput;
+
+$input = new ArgvInput();
+
+$console = new Application();
+$console->add(new BumpCommand());
+$console->run($input);

@@ -1,0 +1,31 @@
+{
+    "name": "Bump-all",
+    "description": "Create bump PR for your orginization Github when you need update package composer",
+    "type": "library",
+    "authors": [
+        {
+            "name": "CaptainJojo",
+            "email": "jonathan.jalouzot@gmail.com",
+            "homepage": "https://github.com/CaptainJojo"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": ">=5.6.0",
+        "symfony/console": "3.0.*",
+        "knplabs/github-api": "1.6.*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~5.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    }
+}
