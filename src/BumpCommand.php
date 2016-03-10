@@ -83,14 +83,19 @@ class BumpCommand extends Command
                         exec('rm -rf /tmp/' . $repos['name']);
                         exec('git clone ' . $repo['ssh_url'] . ' /tmp/' . $repos['name']);
                         file_put_contents('/tmp/' . $repos['name'] . '/composer.json', json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-                        exec('composer update --no-interaction --no-scripts', $outputExec, $returnExec);
+
+                        if (!is_null($composerLock)) {
+                            $contentComposerLock = file_get_contents('/tmp/' . $repos['name'] . '/composer.lock');
+                        }
+
+                        exec('cd /tmp/' . $repos['name'] . '&& composer update --no-interaction --no-scripts', $outputExec, $returnExec);
 
                         if ($returnExec !== 0) {
                             $output->writeln('Error Exec : ' . $outputExec);
                             continue;
                         }
 
-                        $branch = 'bump-' . $package . '-' . $version;
+                        $branch = 'bump-' . $package . '-' . str_replace('*', 'last', $version);
 
                         try {
                             $client->api('git')->references()->create($orga, $repos['name'],
@@ -109,7 +114,7 @@ class BumpCommand extends Command
                                  $repos['name'],
                                  'composer.json',
                                  file_get_contents('/tmp/' . $repos['name'] . '/composer.json'),
-                                 'bump: ' . $package . ' to ' . $version,
+                                 'bump: ' . $package . ' to ' . $version . ' add composer.json',
                                  $content['sha'],
                                  'refs/heads/' . $branch
                              );
@@ -119,32 +124,39 @@ class BumpCommand extends Command
 
                         try {
                             if (!is_null($composerLock)) {
+                                $newContentComposerLock = file_get_contents('/tmp/' . $repos['name'] . '/composer.lock');
+                            }
+
+                            if (!is_null($composerLock) && $newContentComposerLock !== $contentComposerLock) {
                                 $client->api('repo')->contents()->update(
                                     $orga,
                                     $repos['name'],
                                     'composer.lock',
                                     file_get_contents('/tmp/' . $repos['name'] . '/composer.lock'),
-                                    'bump: ' . $package . ' to ' . $version,
+                                    'bump: ' . $package . ' to ' . $version. ' add composer.lock',
                                     $composerLock['sha'],
                                     $branch
                                 );
+
                             }
                         } catch (\Exception $e) {
                             $output->writeln('Error Github : ' . $e->getMessage());
                         }
 
                         try {
-                            $request = $client->api('pull_request')->create($orga, $repos['name'], array(
-                                'base'  => 'master',
-                                'head'  => $branch,
-                                'title' => 'Bump: ' . $package . 'to' . $version,
-                                'body'  => "# Description \n Mise à jour de " . $package . ' en ' . $version
-                            ));
+                            if ((is_null($composerLock)) || (!is_null($composerLock) && $newContentComposerLock !== $contentComposerLock)) {
+                                $request = $client->api('pull_request')->create($orga, $repos['name'], array(
+                                    'base'  => 'master',
+                                    'head'  => $branch,
+                                    'title' => 'Bump: ' . $package . ' to ' . $version,
+                                    'body'  => "# Description \n Mise à jour de " . $package . ' en ' . $version
+                                ));
 
-                            if (isset($request['number'])) {
-                                $client->api('issue')->update($orga, $repos['name'], $request['number'],
-                                    array('labels' => array('chore'))
-                                );
+                                if (isset($request['number'])) {
+                                    $client->api('issue')->update($orga, $repos['name'], $request['number'],
+                                        array('labels' => array('chore'))
+                                    );
+                                }
                             }
 
                         } catch (\Exception $e) {
