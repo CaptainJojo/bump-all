@@ -75,13 +75,13 @@ class BumpCommand extends Command
                             continue;
                         }
 
-                        if (!isset($repos['name']) && !isset($repo['ssh_url'])) {
+                        if (!isset($repos['name']) && !isset($repo['clone_url'])) {
                             $output->writeln('Error Github : ' . $e->getMessage());
                             continue;
                         }
 
                         exec('rm -rf /tmp/' . $repos['name']);
-                        exec('git clone ' . $repo['ssh_url'] . ' /tmp/' . $repos['name']);
+                        exec('git clone ' . preg_replace('/^https:\/\//', 'https://'.$input->getArgument('token').':x-oauth-basic@', $repo['clone_url']) . ' /tmp/' . $repos['name']);
                         file_put_contents('/tmp/' . $repos['name'] . '/composer.json', json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
                         if (!is_null($composerLock)) {
